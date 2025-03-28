@@ -7,7 +7,7 @@
 
 ModInfo::ModInfo() = default;
 
-void ModInfo::parseJsonToModInfo(const std::string& jsonString, ModInfo& modInfo) {
+void ModInfo::parseJsonToModInfo(const std::string &jsonString, ModInfo &modInfo) {
     try {
         nlohmann::json jsonData = nlohmann::json::parse(jsonString);
 
@@ -54,7 +54,12 @@ void ModInfo::parseJsonToModInfo(const std::string& jsonString, ModInfo& modInfo
         if (jsonData.contains("segmented_units_required")) {
             modInfo.segmented_units_required = jsonData.at("segmented_units_required").get<bool>();
         }
-    } catch (const nlohmann::json::exception& e) {
+        if (jsonData.contains("dependencies")) {
+            modInfo.dependencies = jsonData.at("dependencies").get<std::vector<std::string>>();
+        } else {
+            modInfo.dependencies = {"base"};
+        }
+    } catch (const nlohmann::json::exception &e) {
         std::cerr << "Ошибка при парсинге JSON: " << e.what() << std::endl;
     }
 }

@@ -28,6 +28,7 @@ public:
     bool spoiling_required;
     bool freezing_required;
     bool segmented_units_required;
+    std::vector<std::string> dependencies;
 
     static void parseJsonToModInfo(const std::string &jsonString, ModInfo &modInfo);
 };

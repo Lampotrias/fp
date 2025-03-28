@@ -6,6 +6,7 @@
 #include "LuaScriptExecutor.h"
 #include "ModFetcher.h"
 #include <nlohmann/json.hpp>
+#include <fmt/color.h>
 
 namespace fs = std::filesystem;
 
@@ -77,6 +78,20 @@ using json = nlohmann::json;
 
 #include "libs/miniz/miniz.h"
 
+static void dump_mods(std::vector<ModInfo> mods) {
+
+    for (auto mod: mods) {
+        fmt::print(fg(fmt::color::green),  mod.name + "\n");
+    }
+
+// All mods found! Loading order: core, base, pyalienlifegraphics2, pyalienlifegraphics3, pyalternativeenergygraphics, pyfusionenergygraphics, pyhightechgraphics,
+// pyindustrygraphics, pypetroleumhandlinggraphics, pyraworesgraphics, squeak-through-2, aai-loaders, Custom-Production-UI-Fixed, even-distribution, even-pickier-dollies,
+// Fill4Me, flib, FNEI, GhostPlacerXpress, helmod, inventory-repair, Kruise_Kontrol_Updated, Nearby-Ammo-Count, pyalienlifegraphics, pycoalprocessing, pycoalprocessinggraphics,
+// show-max-underground-distance, Teleporters, TimeTools, BottleneckLite, earlier-teleporters_redux, factoryplanner, Lighted-Poles-Plus, Milestones, pyfusionenergy, RateCalculator,
+// StatsGui, GUI_Unifyer, pyindustry, pyrawores, pyhightech, pypetroleumhandling, pyalienlife, pyalternativeenergy, InserterCranes-for-pymods, Lighted-Poles-Plus-pyalternativeenergy,
+// pyhardmode, pypostprocessing, cybersyn, cybersyn-combinator
+}
+
 int main() {
     lua_State *L = luaL_newstate();
     if (!L) {
@@ -90,11 +105,13 @@ int main() {
     executor.execute_script(L, "Data/Postprocess.lua");
 
     auto ss = ModFetcher();
-    ss.fetch_mods("/home/mihail/Downloads/Factorio_Linux/factorio_linux_2.0.39/factorio/mods",
+    auto qq = ss.fetch_mods("/home/mihail/Downloads/Factorio_Linux/factorio_linux_2.0.39/factorio/mods",
                   "/home/mihail/Downloads/Factorio_Linux/factorio_linux_2.0.39/factorio/data");
 
 
-    std::cout << std::setw(4) << json::meta() << std::endl;
+    dump_mods(qq);
+
+//    std::cout << std::setw(4) << json::meta() << std::endl;
 
     lua_close(L);
     return 0;

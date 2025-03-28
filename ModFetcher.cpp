@@ -55,9 +55,8 @@ std::vector<ModInfo> ModFetcher::fetch_mods(std::string mods_path, std::string f
                 if (fs::is_directory(mod_entity)) {
                     auto info_file_path = mod_entity.path() / "info.json";
                     if (fs::exists(info_file_path)) {
-                        modInfo.name = mods_folder_path.filename().string();
+                        modInfo.name = mod_entity.path().filename().string();
                         modInfo.folder = global_mod_folder;
-                        mods.push_back(modInfo);
                     }
                 } else if (mod_entity.is_regular_file() && mod_entity.path().extension() == ".zip") {
                     auto folder_name = mod_entity.path().filename().string().substr(0,
@@ -67,7 +66,6 @@ std::vector<ModInfo> ModFetcher::fetch_mods(std::string mods_path, std::string f
 
                     if (result) {
                         ModInfo::parseJsonToModInfo(result.value(), modInfo);
-                        mods.push_back(modInfo);
                     } else {
                         fmt::print(fg(fmt::color::red), result.error().message + "\n");
                     }
@@ -75,7 +73,7 @@ std::vector<ModInfo> ModFetcher::fetch_mods(std::string mods_path, std::string f
                     std::cout << "Found mod: " << mod_entity.path() << std::endl;
                 }
 
-                if (std::find(enabled_mods.begin(), enabled_mods.end(), modInfo.name) != enabled_mods.end()) {
+                if (std::find(enabled_mods.begin(), enabled_mods.end(), modInfo.name) != enabled_mods.end() || modInfo.name == "base" || modInfo.name == "core") {
                     mods.push_back(modInfo);
                 }
             }
