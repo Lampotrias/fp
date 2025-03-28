@@ -1,113 +1,100 @@
 #include <lua.hpp>
 #include <iostream>
-#include <filesystem>
 #include <algorithm>
 #include <fstream>
+#include "LuaScriptLoader.h"
+#include "LuaScriptExecutor.h"
+#include "ModFetcher.h"
+#include <nlohmann/json.hpp>
 
 namespace fs = std::filesystem;
 
-int my_module_loader(lua_State *L) {
-    std::string  module_name = luaL_checkstring(L, 1);
-    std::cout << "Требуется модуль: " << module_name << std::endl;
-
-    lua_Debug ar;
-    if (lua_getstack(L, 2, &ar)) {
-        if (lua_getinfo(L, "Sl", &ar)) {
-            if (ar.source[0] == '@') {
-                std::cout << "Вызов из файла: " << (ar.source + 1)
-                          << " на строке: " << ar.currentline << std::endl;
-
-                std::string full_path = ar.source + 1; // пропускаем '@'
-                fs::path path_obj(full_path);
-                fs::path folder = path_obj.parent_path();
-
-                std::cout << "Папка: " << folder << std::endl;
-
-                std::replace(module_name.begin(), module_name.end(), '.', '/');
-
-                fs::path target_file = folder / (module_name + ".lua");
-                std::cout << "Будем читать файл: " << target_file << std::endl;
-
-                std::ifstream file(target_file);
-                if (!file) {
-                    std::cerr << "Не удалось открыть файл: " << target_file << std::endl;
-                } else {
-                    std::string content((std::istreambuf_iterator<char>(file)),
-                                        std::istreambuf_iterator<char>());
-                    file.close();
-
-                    // Выполняем код в Lua
-                    if (luaL_loadstring(L, content.c_str()) != LUA_OK) {
-                        std::cerr << "Ошибка загрузки Lua: " << lua_tostring(L, -1) << std::endl;
-                    } else {
-                        if (lua_pcall(L, 0, 0, 0) != LUA_OK) {
-                            std::cerr << "Ошибка выполнения Lua: " << lua_tostring(L, -1) << std::endl;
-                        } else {
-                            std::cout << "Файл выполнен успешно." << std::endl;
-                            return 1;
-                        }
-                    }
-                }
-
-            } else {
-                std::cout << "Вызов из: " << ar.source
-                          << " на строке: " << ar.currentline << std::endl;
-            }
-        }
-    } else {
-        std::cout << "Не удалось получить стек вызова уровня 2" << std::endl;
-    }
-
-    // Пример: обработаем "prototypes.fonts"
-    if (std::string(module_name) == "prototypes.fonts") {
-        const char *lua_code = "print('Загружен prototypes.fonts'); return { font_size = 12 }";
-        if (luaL_loadstring(L, lua_code) != LUA_OK) {
-            return luaL_error(L, "Ошибка загрузки модуля: %s", lua_tostring(L, -1));
-        }
-        return 1; // Вернули функцию-загрузчик
-    }
-
-    // Вернём "not found"
-    lua_pushstring(L, ("Модуль " + std::string(module_name) + " не найден").c_str());
-    return 1; // Вернули сообщение об ошибке
+static int custom_searcher(lua_State *L) {
+    LuaScriptPathResolver resolver = LuaScriptPathResolver(
+            "/home/mihail/Downloads/Factorio_Linux/factorio_linux_2.0.39/factorio/data",
+            "/home/mihail/Downloads/Factorio_Linux/factorio_linux_2.0.39/factorio/mods");
+    LuaScriptLoader loader = LuaScriptLoader();
+    return loader.custom_searcher(L, resolver);
 }
 
-void setup_loader(lua_State *L) {
+void setup_lua(lua_State *L) {
+    luaL_openlibs(L);
     lua_getglobal(L, "package");
-    lua_getfield(L, -1, "searchers"); // Lua 5.2+
-    int len = lua_rawlen(L, -1);
+    lua_getfield(L, -1, "searchers");
 
-    // Вставим нашу функцию в начало
-    lua_pushcfunction(L, my_module_loader);
-    for (int i = len; i >= 1; i--) {
-        lua_rawgeti(L, -2, i);
-        lua_rawseti(L, -3, i + 1);
-    }
-    lua_rawseti(L, -2, 1);
+    lua_pushcfunction(L, custom_searcher);
 
-    lua_pop(L, 2); // Очистили стек
+    lua_rawseti(L, -2, lua_rawlen(L, -2) + 1);
+
+    // Убираем таблицу searchers из стека
+    lua_pop(L, 1);
+
+    // Убираем таблицу package из стека
+    lua_pop(L, 1);
 }
+
+void print_table(lua_State *L, int index, int depth = 0) {
+    lua_pushnil(L);  // Первый ключ
+    while (lua_next(L, index) != 0) {
+        // Получаем ключ и значение из стека
+        int value_type = lua_type(L, -1);
+        int key_type = lua_type(L, -2);
+
+        // Отступ для наглядности структуры таблицы
+        std::string indent(depth * 2, ' ');
+
+        // Обработка ключа
+        std::cout << indent;
+        if (key_type == LUA_TSTRING) {
+            std::cout << lua_tostring(L, -2);
+        } else if (key_type == LUA_TNUMBER) {
+            std::cout << lua_tonumber(L, -2);
+        } else {
+            std::cout << "unknown key type";
+        }
+        std::cout << " = ";
+
+        // Обработка значения
+        if (value_type == LUA_TSTRING) {
+            std::cout << lua_tostring(L, -1) << std::endl;
+        } else if (value_type == LUA_TNUMBER) {
+            std::cout << lua_tonumber(L, -1) << std::endl;
+        } else if (value_type == LUA_TTABLE) {
+            std::cout << std::endl;
+            print_table(L, lua_gettop(L), depth + 1);  // Рекурсивный вызов для вложенной таблицы
+        } else if (value_type == LUA_TBOOLEAN) {
+            std::cout << (lua_toboolean(L, -1) ? "true" : "false") << std::endl;
+        } else {
+            std::cout << "unknown value type" << std::endl;
+        }
+
+        lua_pop(L, 1);  // Удаляем значение, оставляем ключ для следующего lua_next
+    }
+}
+
+using json = nlohmann::json;
+#define MINIZ_HEADER_FILE_ONLY
+
+#include "libs/miniz/miniz.h"
 
 int main() {
     lua_State *L = luaL_newstate();
-    luaL_openlibs(L);
-    setup_loader(L);
-    if (luaL_dofile(L, "/home/mihail/Downloads/Factorio_Linux/factorio_linux_2.0.39/factorio/data/core/lualib/dataloader.lua") != LUA_OK) {
-        std::cerr << "Lua error1: " << lua_tostring(L, -1) << std::endl;
-    } else{
-        std::cerr << "dataloader is ok" << std::endl;
+    if (!L) {
+        std::cerr << "Failed to create Lua state" << std::endl;
+        return 1;
     }
 
-//    if (luaL_dofile(L, "/home/mihail/Downloads/Factorio_Linux/factorio_linux_2.0.39/factorio/data/core/data.lua") !=
-//        LUA_OK) {
-//        std::cerr << "Lua error1: " << lua_tostring(L, -1) << std::endl;
-//    } else {
-//        lua_getglobal(L, "result");
-//        if (lua_isnumber(L, -1)) {
-//            std::cout << "Lua result: " << lua_tonumber(L, -1) << std::endl;
-//        }
-//        lua_pop(L, 1);
-//    }
+    setup_lua(L);
+    LuaScriptExecutor executor = LuaScriptExecutor();
+    executor.execute_script(L, "Data/Sandbox.lua");
+    executor.execute_script(L, "Data/Postprocess.lua");
+
+    auto ss = ModFetcher();
+    ss.fetch_mods("/home/mihail/Downloads/Factorio_Linux/factorio_linux_2.0.39/factorio/mods",
+                  "/home/mihail/Downloads/Factorio_Linux/factorio_linux_2.0.39/factorio/data");
+
+
+    std::cout << std::setw(4) << json::meta() << std::endl;
 
     lua_close(L);
     return 0;

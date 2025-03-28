@@ -1,0 +1,17 @@
+Want to see your tips here? Make a suggestion on Github!
+Tip: You can see more precision and values per second/minute/hour if you hover over the number with Ctrl
+Tip: You can calculate electricity, just add Electricity as a desired product
+Tip: You can calculate research. Add it as a desired product by Ctrl-clicking "Recipe -> Add raw recipe", or by adding consumption for a science pack
+Tip: If something is wrongly inaccessible, you can mark it as accessible in the Dependency Explorer
+Tip: You can reorder recipes, pages, milestones and some other lists
+Tip: You can open the Recipe Explorer by Ctrl+N or with a middle mouse click on any game object
+Tip: A production sheet is not deleted if you close it
+Tip: You can undo things with Ctrl+Z and redo them with Ctrl+Y or Ctrl+Shift+Z
+Tip: The amount of a desired product can be negative. It allows you to express demand.
+Tip: Ctrl-click on a tab to split the screen between it and your current tab
+Tip: Specify <number>/m to produce that many items (or fluid units) per minute, regardless of the current display mode. You can also use '/s' for per second and '/h' for per hour.
+Tip: Specify <number>b to produce that many belts worth of product, for the belt you've selected in the preferences
+Tip: Specify <number>k to multiply the production by 1000. Other SI prefixes work too! (put the prefix before 'b' or '/h')
+Tip: You can enable the dark mode by clicking on the light-bulb icon on the welcome screen.
+Tip: You can switch between tabs using Ctrl+PgUp or Down and reorder them using Ctrl+Shift+PgUp or Down.
+Tip: You can make Yafc load faster by copying the mods folder and disabling the mods that don't affect calculations in mod-list.json.
