@@ -78,10 +78,10 @@ using json = nlohmann::json;
 
 #include "libs/miniz/miniz.h"
 
-static void dump_mods(std::vector<ModInfo> mods) {
+static void dump_mods(std::vector<std::string> names) {
 
-    for (auto mod: mods) {
-        fmt::print(fg(fmt::color::green),  mod.name + "\n");
+    for (auto name: names) {
+        fmt::print(fg(fmt::color::green), name + "\n");
     }
 
 // All mods found! Loading order: core, base, pyalienlifegraphics2, pyalienlifegraphics3, pyalternativeenergygraphics, pyfusionenergygraphics, pyhightechgraphics,
@@ -105,11 +105,68 @@ int main() {
     executor.execute_script(L, "Data/Postprocess.lua");
 
     auto ss = ModFetcher();
-    auto qq = ss.fetch_mods("/home/mihail/Downloads/Factorio_Linux/factorio_linux_2.0.39/factorio/mods",
-                  "/home/mihail/Downloads/Factorio_Linux/factorio_linux_2.0.39/factorio/data");
+    auto all_mods = ss.fetch_mods("/home/mihail/Downloads/Factorio_Linux/factorio_linux_2.0.39/factorio/mods",
+                                  "/home/mihail/Downloads/Factorio_Linux/factorio_linux_2.0.39/factorio/data");
+
+    std::vector<std::string> keys;
+    std::transform(all_mods.begin(), all_mods.end(), std::back_inserter(keys),
+                   [](const auto &pair) { return pair.first; });
+
+    dump_mods(keys);
+
+    std::vector<std::string> mods_to_load = keys;
+    std::erase(mods_to_load, "core");
+    mods_to_load.reserve(all_mods.size());
+
+    std::vector<std::string> mod_load_order = {};
+    mod_load_order.reserve(all_mods.size());
+    mod_load_order.push_back("core");
 
 
-    dump_mods(qq);
+    std::vector<std::string> sorted_mods = {};
+    sorted_mods.reserve(all_mods.size());
+
+    std::vector<std::string> current_load_batch = {};
+    current_load_batch.reserve(all_mods.size());
+
+    sorted_mods = mods_to_load;
+    std::sort(sorted_mods.begin(), sorted_mods.end(), [&](const std::string &a, const std::string &b) {
+        return std::lexicographical_compare(
+                a.begin(), a.end(),
+                b.begin(), b.end(),
+                [](unsigned char c1, unsigned char c2) { return std::tolower(c1) < std::tolower(c2); }
+        );
+    });
+    int index = 1;
+    while (mods_to_load.size() > 0) {
+        current_load_batch.clear();
+
+        for (auto &mod: sorted_mods) {
+            if (all_mods[mod].CanLoad(mods_to_load)) {
+                current_load_batch.push_back(mod);
+            }
+        }
+
+        if (current_load_batch.empty()) {
+            std::cout << "No more mods to load" << std::endl;
+            break;
+        }
+
+        for (auto mod: current_load_batch) {
+            mod_load_order.push_back(mod);
+            std::erase(mods_to_load, mod);
+        }
+
+        std::erase_if(sorted_mods, [&](const std::string& mod) {
+            return std::find(mods_to_load.begin(), mods_to_load.end(), mod) == mods_to_load.end();
+        });
+
+    }
+
+    for (auto s: mod_load_order) {
+        std::cout << s << std::endl;
+    }
+
 
 //    std::cout << std::setw(4) << json::meta() << std::endl;
 

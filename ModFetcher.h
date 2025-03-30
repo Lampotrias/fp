@@ -13,7 +13,7 @@ class ModFetcher {
 public:
     ModFetcher();
 
-    std::vector<ModInfo> fetch_mods(std::string mods_path, std::string factorio_path);
+    std::map<std::string, ModInfo> fetch_mods(std::string mods_path, std::string factorio_path);
 };
 
 

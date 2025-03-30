@@ -3,6 +3,7 @@
 //
 
 #include <iostream>
+#include <regex>
 #include "ModInfo.h"
 
 ModInfo::ModInfo() = default;
@@ -59,7 +60,38 @@ void ModInfo::parseJsonToModInfo(const std::string &jsonString, ModInfo &modInfo
         } else {
             modInfo.dependencies = {"base"};
         }
+
+        std::regex depRegex(R"(^\(?([?!~]|\(\?\))?\)?\s*([\w-]+)(?:\s*[><=]+\s*[\d.]+)?$)");
+
+        for (const auto& dep : modInfo.dependencies) {
+            std::smatch match;
+            if (std::regex_match(dep, match, depRegex)) {
+                std::string type = match[1];
+                std::string mod_name = match[2];
+
+                if (type == "!") {
+                    modInfo.incompatibilities.push_back(mod_name);
+                }
+
+                if (type == "~") {
+                    continue;
+                }
+
+                modInfo.parsed_dependencies[mod_name] = (type == "?");
+            }
+        }
+
+
     } catch (const nlohmann::json::exception &e) {
         std::cerr << "Ошибка при парсинге JSON: " << e.what() << std::endl;
     }
+}
+
+bool ModInfo::CanLoad(std::vector<std::string> notLoadedMods) {
+    for (const auto &dependency: parsed_dependencies) {
+      if (std::find(notLoadedMods.begin(), notLoadedMods.end(), dependency.first) != notLoadedMods.end()) {
+        return false;
+      }
+    }
+    return true;
 }

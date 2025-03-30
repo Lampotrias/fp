@@ -29,8 +29,12 @@ public:
     bool freezing_required;
     bool segmented_units_required;
     std::vector<std::string> dependencies;
+    std::vector<std::string> incompatibilities;
+    std::map<std::string, bool> parsed_dependencies;
 
     static void parseJsonToModInfo(const std::string &jsonString, ModInfo &modInfo);
+
+    bool CanLoad(std::vector<std::string> notLoadedMods);
 };
 
 

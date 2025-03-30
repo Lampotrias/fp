@@ -13,8 +13,8 @@ namespace fs = std::filesystem;
 
 ModFetcher::ModFetcher() = default;
 
-std::vector<ModInfo> ModFetcher::fetch_mods(std::string mods_path, std::string factorio_path) {
-    std::vector<ModInfo> mods = {};
+std::map<std::string, ModInfo> ModFetcher::fetch_mods(std::string mods_path, std::string factorio_path) {
+    std::map<std::string, ModInfo> mods = {};
     nlohmann::json j;
     MinizZipReader zip_reader;
 
@@ -73,8 +73,9 @@ std::vector<ModInfo> ModFetcher::fetch_mods(std::string mods_path, std::string f
                     std::cout << "Found mod: " << mod_entity.path() << std::endl;
                 }
 
-                if (std::find(enabled_mods.begin(), enabled_mods.end(), modInfo.name) != enabled_mods.end() || modInfo.name == "base" || modInfo.name == "core") {
-                    mods.push_back(modInfo);
+                if (std::find(enabled_mods.begin(), enabled_mods.end(), modInfo.name) != enabled_mods.end() ||
+                    modInfo.name == "base" || modInfo.name == "core") {
+                    mods[modInfo.name] = modInfo;
                 }
             }
         } catch (const fs::filesystem_error &e) {
