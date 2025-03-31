@@ -3,7 +3,7 @@ project(fp)
 
 set(CMAKE_CXX_STANDARD 23)
 
-add_executable(fp main.cpp LuaScriptPathResolver.cpp LuaScriptPathResolver.h LuaScriptLoader.cpp LuaScriptLoader.h LuaScriptExecutor.cpp LuaScriptExecutor.h ModInfo.cpp ModInfo.h ModFetcher.cpp ModFetcher.h zip/IZipReader.h zip/MinizZipReader.cpp Error.h)
+add_executable(fp main.cpp LuaScriptPathResolver.cpp LuaScriptPathResolver.h LuaScriptExecutor.cpp LuaScriptExecutor.h ModInfo.cpp ModInfo.h ModFetcher.cpp ModFetcher.h zip/IZipReader.h zip/MinizZipReader.cpp Error.h lua/LuaContext.cpp lua/LuaContext.h lua/models/RequireModeFile.cpp lua/models/RequireModeFile.h)
 
 add_library(miniz STATIC libs/miniz/miniz.c)
 

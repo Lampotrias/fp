@@ -26,7 +26,7 @@ LuaScriptPathResolver::resolve_require(std::string_view module_name, const fs::p
         lua_path += ".lua";
     } else if (lua_path.starts_with("__")) {
         replacePrefix(lua_path);
-        lua_path = parent_script_folder / (lua_path + ".lua");
+        lua_path = lua_path + ".lua";
     } else {
         lua_path = parent_script_folder / (lua_path + ".lua");
     }
