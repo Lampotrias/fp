@@ -137,8 +137,8 @@ void LuaContext::parse() {
                 [](unsigned char c1, unsigned char c2) { return std::tolower(c1) < std::tolower(c2); }
         );
     });
-    int index = 1;
-    while (mods_to_load.size() > 0) {
+
+    while (!mods_to_load.empty()) {
         current_load_batch.clear();
 
         for (auto &mod: sorted_mods) {
@@ -166,6 +166,16 @@ void LuaContext::parse() {
     for (auto s: mod_load_order) {
         std::cout << s << std::endl;
     }
+
+    executor.execute_script(L, data_folder_path + "/" + mod_load_order[0] + "/data.lua");
+    executor.execute_script(L, data_folder_path + "/" + mod_load_order[1] + "/data.lua");
+
+//    lua_getglobal(L, "data");
+//    if (!lua_istable(L, -1)) {
+//        std::cerr << "Ошибка: 'data' не является таблицей" << std::endl;
+//    } else {
+//        print_table(L, lua_gettop(L));
+//    }
 }
 
 void LuaContext::dump_mods(std::vector<std::string> names) {
@@ -180,3 +190,43 @@ int LuaContext::RequireWrapper(lua_State *L) {
     LuaContext *ctx = static_cast<LuaContext *>(ptr);
     return ctx->Require(L);
 }
+
+void LuaContext::print_table(lua_State *L, int index, int depth) {
+    lua_pushnil(L);  // Первый ключ
+    while (lua_next(L, index) != 0) {
+        // Получаем ключ и значение из стека
+        int value_type = lua_type(L, -1);
+        int key_type = lua_type(L, -2);
+
+        // Отступ для наглядности структуры таблицы
+        std::string indent(depth * 2, ' ');
+
+        // Обработка ключа
+        std::cout << indent;
+        if (key_type == LUA_TSTRING) {
+            std::cout << lua_tostring(L, -2);
+        } else if (key_type == LUA_TNUMBER) {
+            std::cout << lua_tonumber(L, -2);
+        } else {
+            std::cout << "unknown key type";
+        }
+        std::cout << " = ";
+
+        // Обработка значения
+        if (value_type == LUA_TSTRING) {
+            std::cout << lua_tostring(L, -1) << std::endl;
+        } else if (value_type == LUA_TNUMBER) {
+            std::cout << lua_tonumber(L, -1) << std::endl;
+        } else if (value_type == LUA_TTABLE) {
+            std::cout << std::endl;
+            print_table(L, lua_gettop(L), depth + 1);  // Рекурсивный вызов для вложенной таблицы
+        } else if (value_type == LUA_TBOOLEAN) {
+            std::cout << (lua_toboolean(L, -1) ? "true" : "false") << std::endl;
+        } else {
+            std::cout << "unknown value type" << std::endl;
+        }
+
+        lua_pop(L, 1);  // Удаляем значение, оставляем ключ для следующего lua_next
+    }
+}
+

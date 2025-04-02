@@ -29,6 +29,8 @@ private:
 
     static int RequireWrapper(lua_State *L);
 
+    void print_table(lua_State *L, int index, int depth = 0);
+
     void dump_mods(std::vector<std::string> names);
 
 public:

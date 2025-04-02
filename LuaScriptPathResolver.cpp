@@ -5,6 +5,7 @@
 #include "LuaScriptPathResolver.h"
 
 #include <fmt/color.h>
+#include <algorithm>
 
 LuaScriptPathResolver::LuaScriptPathResolver(std::string data_folder_path, std::string mods_folder_path)
         : data_folder_path(std::move(data_folder_path)), mods_folder_path(std::move(mods_folder_path)), replace_paths{
@@ -22,21 +23,39 @@ LuaScriptPathResolver::resolve_require(std::string_view module_name, const fs::p
         lua_path = module_name;
     }
 
-    if (lua_path[0] == '/') {
-        lua_path += ".lua";
-    } else if (lua_path.starts_with("__")) {
-        replacePrefix(lua_path);
-        lua_path = lua_path + ".lua";
+    std::ranges::replace(lua_path, '.', '/');
+
+
+    std::string lua_full_path = lua_path;
+    if (lua_full_path[0] == '/') {
+        lua_full_path += ".lua";
+    } else if (lua_full_path.starts_with("__")) {
+        replacePrefix(lua_full_path);
+        lua_full_path = lua_full_path + ".lua";
     } else {
-        lua_path = parent_script_folder / (lua_path + ".lua");
+        lua_full_path = parent_script_folder / (lua_path + ".lua");
     }
 
-
-    if (fs::exists(lua_path)) {
-        fmt::print(fg(fmt::color::white_smoke), "Нашли модуль '{}' по пути: '{}'\n", module_name, lua_path);
-        return lua_path;
+    if (fs::exists(lua_full_path)) {
+        fmt::print(fg(fmt::color::white_smoke), "Нашли модуль '{}' по пути: '{}'\n", module_name, lua_full_path);
+        return lua_full_path;
     } else {
-        fmt::print(fg(fmt::color::white_smoke), "Не удалось найти модуль '{}' по пути: '{}'\n", module_name, lua_path);
+        fmt::print(fg(fmt::color::white_smoke), "Не удалось найти модуль '{}' по пути: '{}'\n", module_name, lua_full_path);
+
+        std::vector<std::string> fallback_paths = {
+                data_folder_path + "/core/lualib/" + lua_path + ".lua",
+                parent_script_folder.parent_path().parent_path() / (lua_path + ".lua"),
+                parent_script_folder.parent_path() / (lua_path + ".lua")
+        };
+
+        for (auto path: fallback_paths) {
+            if (fs::exists(path)) {
+                fmt::print(fg(fmt::color::white_smoke), "Нашли модуль '{}' по пути: '{}'\n", module_name, path);
+                return path;
+            }
+        }
+
+
         auto error = "Не найден скрипт";
         return std::unexpected{Error{error}};
     }
